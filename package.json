@@ -1,0 +1,32 @@
+{
+  "name": "@apigrate/tradegecko",
+  "version": "1.0.0",
+  "description": "TradeGecko API connector for NodeJS",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apigrate/tradegecko.git"
+  },
+  "keywords": [
+    "TradeGecko",
+    "Apigrate",
+    "node"
+  ],
+  "author": "Derek R. Gau",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apigrate/tradegecko/issues"
+  },
+  "homepage": "https://github.com/apigrate/tradegecko#readme",
+  "dependencies": {
+    "debug": "^4.1.1",
+    "request": "^2.88.0",
+    "request-promise-native": "^1.0.7"
+  },
+  "devDependencies": {
+    "moment": "^2.24.0"
+  }
+}
