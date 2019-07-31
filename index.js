@@ -305,6 +305,10 @@ class TradeGecko{
 
       if (resp.statusCode >= 400 && resp.statusCode < 500) {
         debug(`Client error. HTTP-${resp.statusCode}`);
+        if(resp.statusCode === 401){
+          debug(responseBody.message)
+          throw new Error(`TradeGecko Authorization Error (HTTP-${resp.statusCode}). Details: ${responseBody.message}`);
+        }
         if(resp.statusCode === 404){
           debug(responseBody.message)
           return null; //Don't throw an error, return null.
