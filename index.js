@@ -15,6 +15,8 @@
 */
 const debug        = require('debug')('gr8:tradegecko');
 const request      = require('request-promise-native');
+const qs           = require('qs');
+
 /**
  * API connector for TradeGecko
  *
@@ -36,6 +38,7 @@ class TradeGecko{
         'Accept': 'application/json',
         'Authorization': 'Bearer ' + options.apiToken
       },
+      json: true,
       //time: options.measureTiming || false,
       resolveWithFullResponse : true
     });
@@ -47,243 +50,78 @@ class TradeGecko{
   }
 
 
-  async get(objectName, opts){
-
+  async get(uri, opts){
     try{
+      let qstring = qs.stringify(opts, { indices: false });
+      let path = `${uri}${qstring?'?'+qstring:''}`;
+      debug(`GET ${path}`);
 
-      let path = this.encodePath(objectName, opts);
-      debug(`Listing objects. GET ${path}`);
-
-      let resp = await this.baseRequest.get(path);
+      let resp = await this.baseRequest(path);
       return this.handleResponse(resp);
 
     }catch(ex){
       return this.handleResponse(ex);
     }
-
-
   }//get method
 
 
-  async getById(objectName, id, opts){
+  async post(uri, entity, opts){
+    try{
+      let qstring = qs.stringify(opts);
+      let path = `${uri}${qstring?'?'+qstring:''}`;
+      debug(`POST ${path}`);
 
-    try {
-
-      let path = this.encodePath(`${objectName}/${id}`, opts);
-      debug(`Getting object. GET ${objectName}/${id}`);
-      let resp = await this.baseRequest.get(path);
+      let resp = await this.baseRequest({
+        uri: path,
+        method: 'POST',
+        body: entity
+      });
       return this.handleResponse(resp);
 
     }catch(ex){
       return this.handleResponse(ex);
     }
+  }//post method
 
-  }//getById method
+  async put(uri, entity, opts){
+    try{
+      let qstring = qs.stringify(opts);
+      let path = `${uri}${qstring?'?'+qstring:''}`;
+      debug(`PUT ${path}`);
 
+      let resp = await this.baseRequest({
+        uri: path,
+        method: 'PUT',
+        body: entity
+      });
+      return this.handleResponse(resp);
 
-  /**
-    Issues a POST request to CREATE an item.
-    @param {string} objectName name of the object (path on the TradeGecko API, e.g. Products, Invoices, Contacts, etc)
-    @param {object} bodyContent the body of the request
-    @param {object} options (optional) additional options to be sent, if any
-    @example {
-      summarizeErrors: true
+    }catch(ex){
+      return this.handleResponse(ex);
     }
-  */
-  post(objectName, bodyContent, opts){
+  }//put method
 
-    try {
-      debug(`Creating new object. POST ${objectName}\n  object to save:\n  ${JSON.stringify(bodyContent)}`);
+  async delete(uri, opts){
+    try{
+      let qstring = qs.stringify(opts);
+      let path = `${uri}${qstring?'?'+qstring:''}`;
+      debug(`DELETE ${path}`);
 
-      var qstring = '';
-      if(opts){
-        if(opts.summarizeErrors){
-          qstring += 'summarizeErrors='+_.escape(opts.summarizeErrors);
-        }
-      }
-      if(qstring !== '') qstring = '?' + qstring;
+      let resp = await this.baseRequest({
+        uri: path,
+        method: 'DELETE'
+      });
+      return this.handleResponse(resp);
 
-      this.baseRequest.post({ uri: objectName+qstring, body: bodyContent, json: true }, function(err, resp, body){
-
-        if(err){
-          console.error('  Error saving ' + singular(objectName) + '. Reason:\n'+JSON.stringify(err));
-          console.error('    Response:\n'+JSON.stringify(resp));
-          reject(err);
-        } else {
-          debug(JSON.stringify(resp));
-          if(resp.statusCode != 200 && resp.statusCode != 201){
-            reject(new Error('Error (HTTP-'+resp.statusCode+') saving ' + singular(objectName) +'. Details:\n'+JSON.stringify(body) ));
-          } else {
-
-            debug('  Response:\n' + JSON.stringify(body));
-            var parsed = body;
-            if(!_.isNil(parsed.ErrorNumber)){
-              console.error('  Error saving ' + singular(objectName) + '. Reason: '+ parsed.Message);
-              console.error( '    ' + JSON.stringify(parsed) );
-              reject(new Error('Error saving ' + singular(objectName) + '. Details:\n' + JSON.stringify(parsed)) );
-
-            } else {
-              resolve(parsed);
-            }
-          }
-
-        }
-      });//baseRequest
-    } catch (ex){
-      console.error(ex);
-      throw ex;
+    }catch(ex){
+      return this.handleResponse(ex);
     }
-  }// post method
-
-
-  /**
-    Issues a PUT to UPDATE an item
-    @param {string} objectName name of the object (path on the TradeGecko API, e.g. Products, Invoices, Contacts, etc)
-    @param {object} id the id of the entity.
-    @param {object} bodyContent the body of the request (a JSON object)
-    @param {object} options (optional) additional options to be sent, if any
-    @example {
-      summarizeErrors: true
-    }
-  */
-  put(objectName, id, bodyContent, opts){
-
-    try {
-
-      debug(`Updating object. PUT ${objectName}\n  object to save:\n  ${JSON.stringify(bodyContent)}`);
-
-      var idstring = '';
-      if(!_.isNil(id)){
-        debug('  where id=' + id );
-        idstring = '/'+ _.escape(id);
-      }
-
-      var qstring = '';
-      if(opts){
-        if(opts.summarizeErrors){
-          qstring += 'summarizeErrors='+_.escape(opts.summarizeErrors);
-        }
-      }
-      if(qstring !== '') qstring = '?' + qstring;
-
-      this.baseRequest.put({uri: objectName+idstring+qstring, body: bodyContent, json: true}, function(err, resp, body){
-
-        if(err){
-          console.error('  Error creating ' + singular(objectName) + '. Reason:\n'+JSON.stringify(err));
-          console.error('    Response:\n'+JSON.stringify(resp));
-          reject(err);
-        } else {
-          debug('  Response:\n' + JSON.stringify(body))
-          var parsed = body;
-          if(!_.isNil(parsed.ErrorNumber)){
-            console.error('  Error creating ' + singular(objectName) + '. Reason: '+ parsed.Message);
-            console.error( '    ' + JSON.stringify(parsed) );
-            reject(new Error('Error creating ' + singular(objectName) + '. Details:\n' + JSON.stringify(parsed)) );
-
-          } else {
-            resolve(parsed);
-          }
-
-        }
-      });//baseRequest
-    } catch (ex){
-      console.error(ex);
-      throw ex;
-    }
-  }// put method
-
-
-  delete(objectName, id, opts){
-
-    try {
-
-      debug(`Deleting object. DELETE ${objectName}/${id}`);
-
-      var idstring = '';
-      if(!_.isNil(id)){
-        debug('  where id=' + id );
-        idstring = '/'+ _.escape(id);
-      }
-
-      var qstring = '';
-      if(opts){
-        if(opts.summarizeErrors){
-          qstring += 'summarizeErrors='+_.escape(opts.summarizeErrors);
-        }
-      }
-      if(qstring !== '') qstring = '?' + qstring;
-
-      this.baseRequest.delete({ uri: objectName+idstring+qstring, json: true }, function(err, resp, body){
-
-        if(err){
-          console.error('  Error deleting ' + singular(objectName) + '. Reason:\n'+JSON.stringify(err));
-          console.error('    Response:\n'+JSON.stringify(resp));
-          reject(err);
-        } else {
-          debug('  Response:\n' + body)
-          var parsed = body;
-          if(!_.isNil(parsed) && !_.isNil(parsed.ErrorNumber)){
-            console.error('  Error deleting ' + singular(objectName) + '. Reason: '+ parsed.Message);
-            console.error( '    ' + JSON.stringify(parsed) );
-            throw new Error('Error deleting ' + singular(objectName) + '. Details:\n' + JSON.stringify(parsed));
-
-          } else {
-            return parsed;
-          }
-
-        }
-      });//baseRequest
-    } catch (ex){
-      console.error(ex);
-      throw ex;
-    }
-  }//delete method
-
-
-  /**
-   * Encodes common path options
-   */
-  encodePath(objecturi, opts){
-    let path = "";
-    if(opts){
-      if(opts.ids){
-        path += (path===''?'':'&') + 'ids=' + opts.ids.join(",");
-      }
-      if(opts.page){
-        path += (path===''?'':'&') + 'page=' + encodeURIComponent(opts.page);
-      }
-      if(opts.limit){
-        path += (path===''?'':'&') + 'limit=' + encodeURIComponent(opts.limit);
-      }
-      if(opts.updated_at_min){
-        path += (path===''?'':'&') + 'updated_at_min=' + opts.updated_at_min;
-      }
-      if(opts.updated_at_max){
-        path += (path===''?'':'&') + 'updated_at_max=' + opts.updated_at_max;
-      }
-      if(opts.created_at_min){
-        path += (path===''?'':'&') + 'created_at_min=' + opts.created_at_min;
-      }
-      if(opts.created_at_max){
-        path += (path===''?'':'&') + 'created_at_max=' + opts.created_at_max;
-      }
-      if(opts.include){
-        path += (path===''?'':'&') + 'include=' + encodeURIComponent(opts.include);
-      }
-
-      if(opts.parms){
-        for(parmKey in opts.parms){
-          path += (path===''?'':'&') + parmKey+ '=' + encodeURIComponent(opts.parms[parmKey])
-        }
-
-      }
-    }
-    return `${objecturi}${path? '?'+path : ""}`;
-  }
+  }//post method
 
 
   //Note, this handles both the response and error payloads from request-promise-native.
   handleResponse(resp){
+    debug(`Response:\n${JSON.stringify(resp)}`);
 
     if(resp.statusCode >=200 && resp.statusCode <300){
       debug(`HTTP-${resp.statusCode}`);
@@ -292,7 +130,13 @@ class TradeGecko{
       this.rate_limit_reset      = resp.headers['x-rate-limit-reset'];
       this.request_id            = resp.headers['x-request-id'];
 
-      return JSON.parse(resp.body);
+      switch(resp.statusCode){
+        case 204:
+        return;//nothing returned
+
+        default:
+        return resp.body;
+      }
     } else {
       //Errors.
       this.rate_limit            = resp.response.headers['x-rate-limit-limit'];
@@ -300,22 +144,26 @@ class TradeGecko{
       this.rate_limit_reset      = resp.response.headers['x-rate-limit-reset'];
       this.request_id            = resp.response.headers['x-request-id'];
 
-      //resp is an error object, containing the response, which contains the body (which must be parsed).
-      let responseBody = JSON.parse(resp.response.body);
-
       if (resp.statusCode >= 400 && resp.statusCode < 500) {
-        debug(`Client error. HTTP-${resp.statusCode}`);
-        if(resp.statusCode === 401){
-          debug(responseBody.message)
-          throw new Error(`TradeGecko Authorization Error (HTTP-${resp.statusCode}). Details: ${responseBody.message}`);
-        }
-        if(resp.statusCode === 404){
-          debug(responseBody.message)
+        switch(resp.statusCode){
+          case 400:
+          throw new Error(`Request Error. ${resp.message}`);
+
+          case 401:
+          debug(resp.message)
+          throw new Error(`Authorization Error. ${resp.message}`);
+
+          case 404:
+          debug(resp.message)
           return null; //Don't throw an error, return null.
+
+          case 429:
+          throw new RateLimitExceeded(`Sortly rate limit exceeded. Try again in ${this.rate_limit_reset} seconds.`);
+
+          default:
+          throw new Error(`Unhandled Error (HTTP-${resp.statusCode}). ${resp.message}`);
+
         }
-        errorPayload = JSON.parse(resp.body);
-        console.error(responseBody.message);
-        throw new Error(responseBody.message)
       } else if( resp.statusCode >=500){
         debug(`Server error. HTTP-${resp.statusCode}`);
         //response body may not be parseable. Return error with raw body.
