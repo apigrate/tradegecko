@@ -147,21 +147,34 @@ class TradeGecko{
       if (resp.statusCode >= 400 && resp.statusCode < 500) {
         switch(resp.statusCode){
           case 400:
-          throw new Error(`Request Error. ${resp.message}`);
+          throw new ApiError(`Bad Request. ${resp.message}`);
 
           case 401:
           debug(resp.message)
-          throw new Error(`Authorization Error. ${resp.message}`);
+          throw new ApiAuthError(`Authorization Error. ${resp.message}`);
+
+          case 402:
+          throw new ApiError(`Payment Required. ${resp.message}`);
+
+          case 403:
+          debug(resp.message)
+          throw new ApiAuthError(`Authorization Error. ${resp.message}`);
 
           case 404:
           debug(resp.message)
           return null; //Don't throw an error, return null.
 
+          case 414:
+          throw new ApiError(`Request URI too long. ${resp.message}`);
+
+          case 422:
+          throw new ApiError(`Unprocessable Entity. ${resp.message}`);
+
           case 429:
           throw new RateLimitExceeded(`Sortly rate limit exceeded. Try again in ${this.rate_limit_reset} seconds.`);
 
           default:
-          throw new Error(`Unhandled Error (HTTP-${resp.statusCode}). ${resp.message}`);
+          throw new ApiError(`Unhandled Error (HTTP-${resp.statusCode}). ${resp.message}`);
 
         }
       } else if( resp.statusCode >=500){
@@ -182,3 +195,17 @@ class TradeGecko{
 }//TradeGecko
 
 module.exports = TradeGecko;
+
+class ApiError extends Error {
+  constructor(msg){ super(msg); }
+};
+class RateLimitExceeded extends ApiError {
+  constructor(msg){ super(msg); }
+};
+class ApiAuthError extends ApiError {
+  constructor(msg){ super(msg); }
+};
+
+exports.ApiError = ApiError;
+exports.RateLimitExceeded = RateLimitExceeded;
+exports.ApiAuthError = ApiAuthError;
