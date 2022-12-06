@@ -23,7 +23,7 @@
   "homepage": "https://github.com/apigrate/tradegecko#readme",
   "dependencies": {
     "debug": "^4.1.1",
-    "qs": "^6.7.0",
+    "qs": "^6.7.3",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.7"
   },
